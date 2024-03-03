@@ -4,7 +4,6 @@ export default function Headers() {
   return (
     <header className="p-3 flex items-center justify-between   bg-[#23272E] border-b-[1px] border-gray-500">
       <div className="flex items-center gap-2">
-        <img src="" alt="" />
         <svg
           width="100%"
           height="100%"
