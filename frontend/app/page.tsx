@@ -1,112 +1,120 @@
-import Image from "next/image";
+"use client";
+import Link from "next/link";
+import { useEffect, useRef, useState } from "react";
 
 export default function Home() {
+  const [isDropDownActive, setIsDropDownActive] = useState(false);
+  const dropdownRef = useRef<HTMLSelectElement>(null);
+
+  const handleClickOutside = (event: any) => {
+    if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+      setIsDropDownActive(false);
+    }
+  };
+
+  useEffect(() => {
+    if (isDropDownActive) {
+      document.addEventListener("mousedown", handleClickOutside);
+    } else {
+      document.removeEventListener("mousedown", handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [isDropDownActive]);
   return (
-    <main className="flex min-h-screen flex-col items-center justify-between p-24">
-      <div className="z-10 max-w-5xl w-full items-center justify-between font-mono text-sm lg:flex">
-        <p className="fixed left-0 top-0 flex w-full justify-center border-b border-gray-300 bg-gradient-to-b from-zinc-200 pb-6 pt-8 backdrop-blur-2xl dark:border-neutral-800 dark:bg-zinc-800/30 dark:from-inherit lg:static lg:w-auto  lg:rounded-xl lg:border lg:bg-gray-200 lg:p-4 lg:dark:bg-zinc-800/30">
-          Get started by editing&nbsp;
-          <code className="font-mono font-bold">app/page.tsx</code>
-        </p>
-        <div className="fixed bottom-0 left-0 flex h-48 w-full items-end justify-center bg-gradient-to-t from-white via-white dark:from-black dark:via-black lg:static lg:h-auto lg:w-auto lg:bg-none">
-          <a
-            className="pointer-events-none flex place-items-center gap-2 p-8 lg:pointer-events-auto lg:p-0"
-            href="https://vercel.com?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+    <main className="bg-[#1B1D24] h-[calc(100svh-64px)] text-white ">
+      <div className="container mx-auto flex h-full">
+        <section className="bg-[#282D37] flex-1 basis-0 p-4 flex flex-col">
+          <select
+            ref={dropdownRef}
+            onClick={() => {
+              setIsDropDownActive(!isDropDownActive);
+            }}
+            name="
+          "
+            id=""
+            className={
+              isDropDownActive
+                ? "px-4 py-5 w-full rounded-md font-bold bg-[#283541] text-[#139FCD] text-2xl"
+                : "px-4 py-5 w-full rounded-md font-bold bg-[#282D37] text-2xl"
+            }
           >
-            By{" "}
-            <Image
-              src="/vercel.svg"
-              alt="Vercel Logo"
-              className="dark:invert"
-              width={100}
-              height={24}
-              priority
-            />
-          </a>
-        </div>
-      </div>
+            <option value="">Getting Started</option>
+          </select>
+          <div className="p-4 flex-col gap-4 flex flex-1 overflow-scroll">
+            <p>Welcome to the React tutorial!</p>
 
-      <div className="relative flex place-items-center before:absolute before:h-[300px] before:w-full sm:before:w-[480px] before:-translate-x-1/2 before:rounded-full before:bg-gradient-radial before:from-white before:to-transparent before:blur-2xl before:content-[''] after:absolute after:-z-20 after:h-[180px] after:w-full sm:after:w-[240px] after:translate-x-1/3 after:bg-gradient-conic after:from-sky-200 after:via-blue-200 after:blur-2xl after:content-[''] before:dark:bg-gradient-to-br before:dark:from-transparent before:dark:to-blue-700 before:dark:opacity-10 after:dark:from-sky-900 after:dark:via-[#0141ff] after:dark:opacity-40 before:lg:h-[360px] z-[-1]">
-        <Image
-          className="relative dark:drop-shadow-[0_0_0.3rem_#ffffff70] dark:invert"
-          src="/next.svg"
-          alt="Next.js Logo"
-          width={180}
-          height={37}
-          priority
-        />
-      </div>
+            <p>
+              The goal of this tutorial is to quickly give you an experience of
+              what it feels like to work with React, right in the browser. It
+              does not aim to be comprehensive, and you don't need to understand
+              everything before moving on. However, after you complete it, make
+              sure to also read the Guide which covers each topic in more
+              detail.
+            </p>
 
-      <div className="mb-32 grid text-center lg:max-w-5xl lg:w-full lg:mb-0 lg:grid-cols-4 lg:text-left">
-        <a
-          href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Docs{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
-            Find in-depth information about Next.js features and API.
-          </p>
-        </a>
+            <h2 className="font-bold">Prerequisites</h2>
 
-        <a
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Learn{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
-            Learn about Next.js in an interactive course with&nbsp;quizzes!
-          </p>
-        </a>
+            <p>
+              The tutorial assumes basic familiarity with HTML, CSS and
+              JavaScript. If you are totally new to front-end development, it
+              might not be the best idea to jump right into a framework as your
+              first step - grasp the basics then come back! Prior experience
+              with other frameworks helps, but is not required.
+            </p>
 
-        <a
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Templates{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
-            Explore starter templates for Next.js.
-          </p>
-        </a>
+            <h2 className="font-bold">How to Use This Tutorial</h2>
 
-        <a
-          href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Deploy{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50 text-balance`}>
-            Instantly deploy your Next.js site to a shareable URL with Vercel.
-          </p>
-        </a>
+            <p>
+              You can edit the code on the right and see the result update
+              instantly. Each step will introduce a core feature of React, and
+              you will be expected to complete the code to get the demo working.
+              If you get stuck, you will have a "Show me!" button that reveals
+              the working code for you. Try not to rely on it too much - you'll
+              learn faster by figuring things out on your own.
+            </p>
+
+            <p>
+              If you are an experienced developer coming from React's previous
+              versions or other frameworks, there are a few settings you can
+              tweak to make the best use of this tutorial. If you are a
+              beginner, it's recommended to go with the defaults.
+            </p>
+            <button className="my-2 border-2 border-sky-600 rounded-md py-2 bg-sky-600 font-bold">
+              Show Me!
+            </button>
+          </div>
+          <div className="border-t-2 py-3  border-gray-50 flex justify-between">
+            <div></div>
+            <Link href="" className="text-[#139FCD]">
+              Next <span className="text-gray-400">&gt;</span>
+            </Link>
+          </div>
+        </section>
+        <section className="flex-1 basis-36 bg-[#232730] p-4 flex">
+          <div className="border-[1px] border-gray-500 rounded-md overflow-hidden shadow-md flex-1 flex flex-col">
+            <div className="flex-1 flex flex-col">
+              <div className="bg-[#343A46] text-[#139FCD] pt-3 px-3 flex ">
+                <p className="border-b-[1px] border-[#139FCD] font-medium pb-3">
+                  App.js
+                </p>
+              </div>
+              <div className="p-4 bg-[#16181D] flex-1">
+                Initializing Monaco Editor...
+              </div>
+            </div>
+            <div className="flex-1 flex flex-col bg-[#23272F]">
+              <div className="bg-[#343A46] text-[#139FCD] pt-3 px-3 flex">
+                <p className="font-medium pb-3">Preview</p>
+              </div>
+              <div className="bg-white text-black rounded-md p-3 m-3 flex-1">
+                Loading Web Containers...
+              </div>
+            </div>
+          </div>
+        </section>
       </div>
     </main>
   );
