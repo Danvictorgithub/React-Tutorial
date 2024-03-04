@@ -1,8 +1,10 @@
 "use client";
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { MouseEventHandler, useEffect, useRef, useState } from "react";
 import { WebContainer } from "@webcontainer/api";
 import Editor, { Monaco } from "@monaco-editor/react";
+import { Terminal } from "xterm";
+import "xterm/css/xterm.css";
 // Call only once
 export default function Home() {
   const [isDropDownActive, setIsDropDownActive] = useState(false);
@@ -19,12 +21,21 @@ export default function Home() {
   const timeoutId = useRef<NodeJS.Timeout | null>(null);
   const webcontainerInstanceRef = useRef<WebContainer>();
   const editorRef = useRef<any>(null);
-
+  const terminalRef = useRef<HTMLDivElement>(null);
+  const [isTerminal, setIsTerminal] = useState(false);
+  const toggleTerminal = () => {
+    setIsTerminal(!isTerminal);
+  };
   function showValue() {
     if (editorRef.current) {
       return editorRef.current!.getValue();
     } else {
       return "";
+    }
+  }
+  function showMe() {
+    if (editorRef.current) {
+      editorRef.current!.setValue("Hello World");
     }
   }
   const monacoEditor = (editor: any, monaco: any) => {
@@ -106,9 +117,13 @@ export default function Home() {
   }
   useEffect(() => {
     async function inititalizeWebContainer() {
+      const terminal = new Terminal({
+        convertEol: true,
+      });
+      terminal.open(terminalRef.current as HTMLElement);
       const webcontainerInstance = await WebContainer.boot();
       webcontainerInstanceRef.current = webcontainerInstance;
-      webcontainerInstance.on("server-ready", (port, url) => {
+      webcontainerInstance.on("server-ready", async (port, url) => {
         setLoadingWebContainer(false);
         if (previewRef.current) {
           previewRef.current.src = url;
@@ -139,7 +154,11 @@ export default function Home() {
         ]);
         setLoadingWebContainerMessage("Initializing Webcontainer...");
         installProcess.output.pipeTo(
-          new WritableStream({ write: console.log })
+          new WritableStream({
+            write(data) {
+              terminal.write(data);
+            },
+          })
         );
         const installExitCode = await installProcess.exit;
         if (installExitCode !== 0) {
@@ -151,7 +170,13 @@ export default function Home() {
           "-c",
           `echo \"${showValue()}\" > my-app/src/App.jsx`,
         ]);
-
+        overwriteAppJsx.output.pipeTo(
+          new WritableStream({
+            write(data) {
+              terminal.write(data);
+            },
+          })
+        );
         if ((await overwriteAppJsx.exit) !== 0) {
           throw new Error("Unable to overwrite App.jsx");
         }
@@ -161,6 +186,13 @@ export default function Home() {
           "-c",
           'echo "" > my-app/src/App.css',
         ]);
+        overwriteAppCss.output.pipeTo(
+          new WritableStream({
+            write(data) {
+              terminal.write(data);
+            },
+          })
+        );
         setLoadingWebContainerMessage("Setting up Project");
         if ((await overwriteAppCss.exit) !== 0) {
           throw new Error("Unable to overwrite App.css");
@@ -170,7 +202,13 @@ export default function Home() {
           "-c",
           'echo "" > my-app/src/index.css',
         ]);
-
+        overwriteMainCss.output.pipeTo(
+          new WritableStream({
+            write(data) {
+              terminal.write(data);
+            },
+          })
+        );
         if ((await overwriteMainCss.exit) !== 0) {
           throw new Error("Unable to overwrite main.css");
         }
@@ -179,9 +217,17 @@ export default function Home() {
           "-c",
           "cd my-app && npm run dev",
         ]);
+        runVite.output.pipeTo(
+          new WritableStream({
+            write(data) {
+              terminal.write(data);
+            },
+          })
+        );
         if ((await runVite.exit) !== 0) {
           throw new Error("Unable to run npm run dev");
         }
+        setLoadingWebContainerMessage("Starting");
       };
       startDevServer();
     }
@@ -259,7 +305,7 @@ export default function Home() {
               beginner, it's recommended to go with the defaults.
             </p>
             <button
-              onClick={showValue}
+              onClick={showMe as any}
               className="my-2 border-2 border-sky-600 rounded-md py-2 bg-sky-600 font-bold"
             >
               Show Me!
@@ -294,12 +340,15 @@ export default function Home() {
               </div>
             </div>
             <div className="flex-1 flex flex-col bg-[#23272F] basis-0">
-              <div className="bg-[#343A46] text-[#139FCD] pt-3 px-3 flex">
+              <div className="bg-[#343A46] text-[#139FCD] pt-3 px-3 flex justify-between items-center">
                 <p className="font-medium pb-3">Preview</p>
+                <button onClick={toggleTerminal}>
+                  <span className="material-symbols-outlined">terminal</span>
+                </button>
               </div>
               <div
                 className={
-                  loadingWebContainer
+                  loadingWebContainer && !isTerminal
                     ? "flex-1 flex justify-center items-center flex-col gap-4"
                     : "hidden"
                 }
@@ -327,13 +376,21 @@ export default function Home() {
               </div>
               <div
                 className={
-                  !loadingWebContainer
+                  !loadingWebContainer && !isTerminal
                     ? "bg-white text-black rounded-md m-3 flex-1"
                     : "hidden"
                 }
               >
                 <iframe ref={previewRef} className="h-full w-full"></iframe>
               </div>
+              <div
+                className={
+                  isTerminal
+                    ? "bg-black flex-1 text-white p-4"
+                    : "bg-black flex-1 hidden"
+                }
+                ref={terminalRef}
+              ></div>
             </div>
           </div>
         </section>
