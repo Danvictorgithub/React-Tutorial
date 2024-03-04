@@ -13,7 +13,9 @@ export default function Home() {
       setIsDropDownActive(false);
     }
   };
-  const loadingWebContainer = useRef(true);
+  const [loadingWebContainer, setLoadingWebContainer] = useState(true);
+  const [loadingWebContainerMessage, setLoadingWebContainerMessage] =
+    useState("");
   const timeoutId = useRef<NodeJS.Timeout | null>(null);
   const webcontainerInstanceRef = useRef<WebContainer>();
   const editorRef = useRef<any>(null);
@@ -88,7 +90,7 @@ export default function Home() {
   };
 
   function handleEditorChange(value: string | undefined, event: any) {
-    if (loadingWebContainer.current) {
+    if (loadingWebContainer) {
       return;
     }
 
@@ -107,7 +109,7 @@ export default function Home() {
       const webcontainerInstance = await WebContainer.boot();
       webcontainerInstanceRef.current = webcontainerInstance;
       webcontainerInstance.on("server-ready", (port, url) => {
-        loadingWebContainer.current = false;
+        setLoadingWebContainer(false);
         if (previewRef.current) {
           previewRef.current.src = url;
         }
@@ -135,6 +137,7 @@ export default function Home() {
           "-c",
           "cd my-app && npm install",
         ]);
+        setLoadingWebContainerMessage("Initializing Webcontainer...");
         installProcess.output.pipeTo(
           new WritableStream({ write: console.log })
         );
@@ -142,6 +145,7 @@ export default function Home() {
         if (installExitCode !== 0) {
           throw new Error("Unable to run npm install");
         }
+        setLoadingWebContainerMessage("Installing Dependencies");
         // Overwrite App.jsx with an empty component
         const overwriteAppJsx = await webcontainerInstance.spawn("sh", [
           "-c",
@@ -157,7 +161,7 @@ export default function Home() {
           "-c",
           'echo "" > my-app/src/App.css',
         ]);
-
+        setLoadingWebContainerMessage("Setting up Project");
         if ((await overwriteAppCss.exit) !== 0) {
           throw new Error("Unable to overwrite App.css");
         }
@@ -170,6 +174,7 @@ export default function Home() {
         if ((await overwriteMainCss.exit) !== 0) {
           throw new Error("Unable to overwrite main.css");
         }
+        setLoadingWebContainerMessage("Starting Dev Server");
         const runVite = await webcontainerInstance.spawn("sh", [
           "-c",
           "cd my-app && npm run dev",
@@ -269,30 +274,64 @@ export default function Home() {
         </section>
         <section className="flex-1 basis-36 bg-[#232730] p-4 flex min-h-[860px]">
           <div className="border-[1px] border-gray-500 rounded-md overflow-hidden shadow-md flex-1 flex flex-col">
-            <div className="flex-1 flex flex-col">
+            <div className="flex-1 flex flex-col basis-0">
               <div className="bg-[#343A46] text-[#139FCD] pt-3 px-3 flex ">
                 <p className="border-b-[1px] border-[#139FCD] font-medium pb-3">
                   App.js
                 </p>
               </div>
-              <div className="bg-[#16181D] flex-1">
-                {/* Initializing Monaco Editor... */}
+              <div className="bg-[#16181D] flex-1 basis-0">
                 <Editor
-                  className="flex-1"
-                  height="100%"
+                  // className="flex-1 shrink-1 basis-0 h-full"
+                  // height={"100%"}
                   defaultLanguage="javascript"
-                  defaultValue={`import React from 'react';\n\nfunction App() {\n  return (\n    <div>\n\t\t\tHello World   \n\t\t</div>\n  );\n}\n\nexport default App;`}
+                  defaultValue={`import React from 'react';\n\nfunction App() {\n  return (\n    <div>\n\t\t\tHello World\n\t\t</div>\n  );\n}\n\nexport default App;`}
                   theme="vs-dark"
                   onMount={monacoEditor}
                   onChange={handleEditorChange}
+                  loading={<p>Monaco Editor Loading...</p>}
                 />
               </div>
             </div>
-            <div className="flex-1 flex flex-col bg-[#23272F]">
+            <div className="flex-1 flex flex-col bg-[#23272F] basis-0">
               <div className="bg-[#343A46] text-[#139FCD] pt-3 px-3 flex">
                 <p className="font-medium pb-3">Preview</p>
               </div>
-              <div className="bg-white text-black rounded-md m-3 flex-1">
+              <div
+                className={
+                  loadingWebContainer
+                    ? "flex-1 flex justify-center items-center flex-col gap-4"
+                    : "hidden"
+                }
+              >
+                <svg
+                  width="100%"
+                  height="100%"
+                  viewBox="-10.5 -9.45 21 18.9"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="text-sm me-0 w-10 h-10 text-link dark:text-link-dark flex origin-center transition-all ease-in-out animate-spin"
+                >
+                  <circle cx="0" cy="0" r="2" fill="#139FCD"></circle>
+                  <g stroke="#139FCD" strokeWidth="1" fill="none">
+                    <ellipse rx="10" ry="4.5"></ellipse>
+                    <ellipse rx="10" ry="4.5" transform="rotate(60)"></ellipse>
+                    <ellipse rx="10" ry="4.5" transform="rotate(120)"></ellipse>
+                  </g>
+                </svg>
+                <p className="font-medium">
+                  {loadingWebContainerMessage.length == 0
+                    ? "Loading Webcontainer"
+                    : loadingWebContainerMessage}
+                </p>
+              </div>
+              <div
+                className={
+                  !loadingWebContainer
+                    ? "bg-white text-black rounded-md m-3 flex-1"
+                    : "hidden"
+                }
+              >
                 <iframe ref={previewRef} className="h-full w-full"></iframe>
               </div>
             </div>
