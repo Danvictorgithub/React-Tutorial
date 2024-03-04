@@ -1,16 +1,187 @@
 "use client";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-
+import { WebContainer } from "@webcontainer/api";
+import Editor, { Monaco } from "@monaco-editor/react";
+// Call only once
 export default function Home() {
   const [isDropDownActive, setIsDropDownActive] = useState(false);
   const dropdownRef = useRef<HTMLSelectElement>(null);
-
+  const previewRef = useRef<HTMLIFrameElement>(null);
   const handleClickOutside = (event: any) => {
     if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
       setIsDropDownActive(false);
     }
   };
+  const loadingWebContainer = useRef(true);
+  const timeoutId = useRef<NodeJS.Timeout | null>(null);
+  const webcontainerInstanceRef = useRef<WebContainer>();
+  const editorRef = useRef<any>(null);
+
+  function showValue() {
+    if (editorRef.current) {
+      return editorRef.current!.getValue();
+    } else {
+      return "";
+    }
+  }
+  const monacoEditor = (editor: any, monaco: any) => {
+    Promise.all([
+      fetch("https://unpkg.com/@types/react/index.d.ts").then((res) =>
+        res.text()
+      ),
+      fetch("https://unpkg.com/@types/react-dom/index.d.ts").then((res) =>
+        res.text()
+      ),
+    ]).then(([react, reactDom]) => {
+      // Add typings
+      monaco.languages.typescript.javascriptDefaults.addExtraLib(
+        react,
+        "react/index.d.ts"
+      );
+      monaco.languages.typescript.javascriptDefaults.addExtraLib(
+        reactDom,
+        "react-dom/index.d.ts"
+      );
+
+      // Configure JavaScript defaults
+      monaco.languages.typescript.javascriptDefaults.setCompilerOptions({
+        target: monaco.languages.typescript.ScriptTarget.ESNext,
+        allowNonTsExtensions: true,
+        moduleResolution:
+          monaco.languages.typescript.ModuleResolutionKind.NodeJs,
+        module: monaco.languages.typescript.ModuleKind.CommonJS,
+        jsx: monaco.languages.typescript.JsxEmit.React,
+        jsxFactory: "React.createElement",
+        jsxFragmentFactory: "React.Fragment",
+        allowJs: true,
+        typeRoots: ["node_modules/@types"],
+        noEmit: true,
+        strict: true,
+        noImplicitAny: true,
+        strictNullChecks: true,
+      });
+    });
+    monaco.editor.defineTheme("myTheme", {
+      base: "vs-dark",
+      inherit: true,
+      rules: [],
+      colors: {
+        "editor.background": "#16181D",
+      },
+    });
+    monaco.editor.setTheme("myTheme");
+    editorRef.current = editor;
+  };
+  const updateWebContainer = async (value: string) => {
+    const filePath = "my-app/src/App.jsx";
+
+    try {
+      // Send the JSX content as a separate payload
+      await webcontainerInstanceRef.current!.fs.writeFile(filePath, value);
+      // Optionally, you can log a success message
+      console.log(`Successfully updated ${filePath}`);
+    } catch (error: any) {
+      // Handle errors
+      throw new Error(`Unable to update ${filePath}: ${error.message}`);
+    }
+  };
+
+  function handleEditorChange(value: string | undefined, event: any) {
+    if (loadingWebContainer.current) {
+      return;
+    }
+
+    // If there's an existing timeout, clear it
+    if (timeoutId.current) {
+      clearTimeout(timeoutId.current);
+    }
+
+    // Set a new timeout
+    timeoutId.current = setTimeout(() => {
+      updateWebContainer(value as string);
+    }, 250);
+  }
+  useEffect(() => {
+    async function inititalizeWebContainer() {
+      const webcontainerInstance = await WebContainer.boot();
+      webcontainerInstanceRef.current = webcontainerInstance;
+      webcontainerInstance.on("server-ready", (port, url) => {
+        loadingWebContainer.current = false;
+        if (previewRef.current) {
+          previewRef.current.src = url;
+        }
+      });
+      const startDevServer = async () => {
+        const initProcess = await webcontainerInstance.spawn("npx", [
+          "-y",
+          "create-vite",
+          "my-app",
+          "--template",
+          "react",
+        ]);
+        initProcess.output.pipeTo(
+          new WritableStream({
+            write: (chunk) => {
+              console.log(chunk);
+            },
+          })
+        );
+        const initExitCode = await initProcess.exit;
+        if (initExitCode !== 0) {
+          throw new Error("Unable to run npm init");
+        }
+        const installProcess = await webcontainerInstance.spawn("sh", [
+          "-c",
+          "cd my-app && npm install",
+        ]);
+        installProcess.output.pipeTo(
+          new WritableStream({ write: console.log })
+        );
+        const installExitCode = await installProcess.exit;
+        if (installExitCode !== 0) {
+          throw new Error("Unable to run npm install");
+        }
+        // Overwrite App.jsx with an empty component
+        const overwriteAppJsx = await webcontainerInstance.spawn("sh", [
+          "-c",
+          `echo \"${showValue()}\" > my-app/src/App.jsx`,
+        ]);
+
+        if ((await overwriteAppJsx.exit) !== 0) {
+          throw new Error("Unable to overwrite App.jsx");
+        }
+
+        // Overwrite App.css with an empty file
+        const overwriteAppCss = await webcontainerInstance.spawn("sh", [
+          "-c",
+          'echo "" > my-app/src/App.css',
+        ]);
+
+        if ((await overwriteAppCss.exit) !== 0) {
+          throw new Error("Unable to overwrite App.css");
+        }
+        // Overwrite main.css with an empty file
+        const overwriteMainCss = await webcontainerInstance.spawn("sh", [
+          "-c",
+          'echo "" > my-app/src/index.css',
+        ]);
+
+        if ((await overwriteMainCss.exit) !== 0) {
+          throw new Error("Unable to overwrite main.css");
+        }
+        const runVite = await webcontainerInstance.spawn("sh", [
+          "-c",
+          "cd my-app && npm run dev",
+        ]);
+        if ((await runVite.exit) !== 0) {
+          throw new Error("Unable to run npm run dev");
+        }
+      };
+      startDevServer();
+    }
+    inititalizeWebContainer();
+  }, []);
 
   useEffect(() => {
     if (isDropDownActive) {
@@ -25,7 +196,7 @@ export default function Home() {
   }, [isDropDownActive]);
   return (
     <main className="bg-[#1B1D24] h-[calc(100svh-64px)] text-white ">
-      <div className="container mx-auto flex h-full">
+      <div className="container mx-auto flex flex-col md:flex-row h-full">
         <section className="bg-[#282D37] flex-1 basis-0 p-4 flex flex-col">
           <select
             ref={dropdownRef}
@@ -82,7 +253,10 @@ export default function Home() {
               tweak to make the best use of this tutorial. If you are a
               beginner, it's recommended to go with the defaults.
             </p>
-            <button className="my-2 border-2 border-sky-600 rounded-md py-2 bg-sky-600 font-bold">
+            <button
+              onClick={showValue}
+              className="my-2 border-2 border-sky-600 rounded-md py-2 bg-sky-600 font-bold"
+            >
               Show Me!
             </button>
           </div>
@@ -93,7 +267,7 @@ export default function Home() {
             </Link>
           </div>
         </section>
-        <section className="flex-1 basis-36 bg-[#232730] p-4 flex">
+        <section className="flex-1 basis-36 bg-[#232730] p-4 flex min-h-[860px]">
           <div className="border-[1px] border-gray-500 rounded-md overflow-hidden shadow-md flex-1 flex flex-col">
             <div className="flex-1 flex flex-col">
               <div className="bg-[#343A46] text-[#139FCD] pt-3 px-3 flex ">
@@ -101,16 +275,25 @@ export default function Home() {
                   App.js
                 </p>
               </div>
-              <div className="p-4 bg-[#16181D] flex-1">
-                Initializing Monaco Editor...
+              <div className="bg-[#16181D] flex-1">
+                {/* Initializing Monaco Editor... */}
+                <Editor
+                  className="flex-1"
+                  height="100%"
+                  defaultLanguage="javascript"
+                  defaultValue={`import React from 'react';\n\nfunction App() {\n  return (\n    <div>\n\t\t\tHello World   \n\t\t</div>\n  );\n}\n\nexport default App;`}
+                  theme="vs-dark"
+                  onMount={monacoEditor}
+                  onChange={handleEditorChange}
+                />
               </div>
             </div>
             <div className="flex-1 flex flex-col bg-[#23272F]">
               <div className="bg-[#343A46] text-[#139FCD] pt-3 px-3 flex">
                 <p className="font-medium pb-3">Preview</p>
               </div>
-              <div className="bg-white text-black rounded-md p-3 m-3 flex-1">
-                Loading Web Containers...
+              <div className="bg-white text-black rounded-md m-3 flex-1">
+                <iframe ref={previewRef} className="h-full w-full"></iframe>
               </div>
             </div>
           </div>
