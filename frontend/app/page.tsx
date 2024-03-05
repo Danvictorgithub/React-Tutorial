@@ -1,8 +1,8 @@
 "use client";
 import Link from "next/link";
-import { MouseEventHandler, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { WebContainer } from "@webcontainer/api";
-import Editor, { Monaco } from "@monaco-editor/react";
+import Editor from "@monaco-editor/react";
 import { Terminal } from "xterm";
 import "xterm/css/xterm.css";
 // Call only once
@@ -117,10 +117,12 @@ export default function Home() {
   }
   useEffect(() => {
     async function inititalizeWebContainer() {
-      const terminal = new Terminal({
-        convertEol: true,
-      });
-      terminal.open(terminalRef.current as HTMLElement);
+      // const terminal = new Terminal({
+      //   convertEol: true,
+      // });
+      // if (terminalRef.current) {
+      //   terminal.open(terminalRef.current as HTMLElement);
+      // }
       const webcontainerInstance = await WebContainer.boot();
       webcontainerInstanceRef.current = webcontainerInstance;
       webcontainerInstance.on("server-ready", async (port, url) => {
@@ -156,7 +158,7 @@ export default function Home() {
         installProcess.output.pipeTo(
           new WritableStream({
             write(data) {
-              terminal.write(data);
+              // terminal.write(data);
             },
           })
         );
@@ -173,7 +175,7 @@ export default function Home() {
         overwriteAppJsx.output.pipeTo(
           new WritableStream({
             write(data) {
-              terminal.write(data);
+              // terminal.write(data);
             },
           })
         );
@@ -189,7 +191,7 @@ export default function Home() {
         overwriteAppCss.output.pipeTo(
           new WritableStream({
             write(data) {
-              terminal.write(data);
+              // terminal.write(data);
             },
           })
         );
@@ -205,7 +207,7 @@ export default function Home() {
         overwriteMainCss.output.pipeTo(
           new WritableStream({
             write(data) {
-              terminal.write(data);
+              // terminal.write(data);
             },
           })
         );
@@ -220,7 +222,7 @@ export default function Home() {
         runVite.output.pipeTo(
           new WritableStream({
             write(data) {
-              terminal.write(data);
+              // terminal.write(data);
             },
           })
         );
@@ -342,9 +344,9 @@ export default function Home() {
             <div className="flex-1 flex flex-col bg-[#23272F] basis-0">
               <div className="bg-[#343A46] text-[#139FCD] pt-3 px-3 flex justify-between items-center">
                 <p className="font-medium pb-3">Preview</p>
-                <button onClick={toggleTerminal}>
+                {/* <button onClick={toggleTerminal}>
                   <span className="material-symbols-outlined">terminal</span>
-                </button>
+                </button> */}
               </div>
               <div
                 className={
