@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { SyntheticEvent, useEffect, useRef, useState } from "react";
 import { WebContainer } from "@webcontainer/api";
 import Editor from "@monaco-editor/react";
 import { Terminal } from "xterm";
@@ -21,11 +21,11 @@ export default function Home() {
   const timeoutId = useRef<NodeJS.Timeout | null>(null);
   const webcontainerInstanceRef = useRef<WebContainer>();
   const editorRef = useRef<any>(null);
-  const terminalRef = useRef<HTMLDivElement>(null);
-  const [isTerminal, setIsTerminal] = useState(false);
-  const toggleTerminal = () => {
-    setIsTerminal(!isTerminal);
-  };
+  // const terminalRef = useRef<HTMLDivElement>(null);
+  // const [isTerminal, setIsTerminal] = useState(false);
+  // const toggleTerminal = () => {
+  //   setIsTerminal(!isTerminal);
+  // };
   function showValue() {
     if (editorRef.current) {
       return editorRef.current!.getValue();
@@ -35,7 +35,9 @@ export default function Home() {
   }
   function showMe() {
     if (editorRef.current) {
-      editorRef.current!.setValue("Hello World");
+      editorRef.current!.setValue(
+        `import React from 'react';\n\nfunction App() {\n  return (\n    <div>\n\t\t\tHello React\n\t\t</div>\n  );\n}\n\nexport default App;`
+      );
     }
   }
   const monacoEditor = (editor: any, monaco: any) => {
@@ -93,7 +95,7 @@ export default function Home() {
       // Send the JSX content as a separate payload
       await webcontainerInstanceRef.current!.fs.writeFile(filePath, value);
       // Optionally, you can log a success message
-      console.log(`Successfully updated ${filePath}`);
+      // console.log(`Successfully updated ${filePath}`);
     } catch (error: any) {
       // Handle errors
       throw new Error(`Unable to update ${filePath}: ${error.message}`);
@@ -126,10 +128,33 @@ export default function Home() {
       const webcontainerInstance = await WebContainer.boot();
       webcontainerInstanceRef.current = webcontainerInstance;
       webcontainerInstance.on("server-ready", async (port, url) => {
-        setLoadingWebContainer(false);
         if (previewRef.current) {
           previewRef.current.src = url;
         }
+        setLoadingWebContainer(false);
+
+        // const iframe = previewRef.current;
+
+        // const handleMessage = (event: any) => {
+        //   console.log("This is called");
+        //   console.log(event);
+        //   console.log(event.source);
+        //   console.log(event.data);
+        //   // Check if the message is from the iframe
+        //   if (event.source[0] === iframe!.contentWindow) {
+        //     // Handle the error message from the iframe
+        //     const errorMessage = event.data;
+        //     console.error("Error in iframe:", errorMessage);
+        //   }
+        // };
+
+        // // Add an event listener for the 'message' event
+        // window.addEventListener("message", handleMessage);
+
+        // // Cleanup the event listener when the component is unmounted
+        // return () => {
+        //   window.removeEventListener("message", handleMessage);
+        // };
       });
       const startDevServer = async () => {
         const initProcess = await webcontainerInstance.spawn("npx", [
@@ -142,7 +167,7 @@ export default function Home() {
         initProcess.output.pipeTo(
           new WritableStream({
             write: (chunk) => {
-              console.log(chunk);
+              // console.log(chunk);
             },
           })
         );
@@ -247,6 +272,10 @@ export default function Home() {
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [isDropDownActive]);
+  const handleError = (event: any) => {
+    console.error("Error loading iframe:", event.message);
+    // Handle the error here, like displaying an error message to the user
+  };
   return (
     <main className="bg-[#1B1D24] h-[calc(100svh-64px)] text-white ">
       <div className="container mx-auto flex flex-col md:flex-row h-full">
@@ -308,7 +337,7 @@ export default function Home() {
             </p>
             <button
               onClick={showMe as any}
-              className="my-2 border-2 border-sky-600 rounded-md py-2 bg-sky-600 font-bold"
+              className="my-2 border-2 border-sky-600 rounded-md py-2 bg-sky-600 font-bold hover:bg-sky-700 transition-all ease-in-out duration-75 w-full text-white active:bg-white active:text-sky-600 active:border-sky-600 active:shadow-md hover:shadow-md hover:text-white hover:border-sky-700"
             >
               Show Me!
             </button>
@@ -350,7 +379,7 @@ export default function Home() {
               </div>
               <div
                 className={
-                  loadingWebContainer && !isTerminal
+                  loadingWebContainer /*&& !isTerminal*/
                     ? "flex-1 flex justify-center items-center flex-col gap-4"
                     : "hidden"
                 }
@@ -378,21 +407,25 @@ export default function Home() {
               </div>
               <div
                 className={
-                  !loadingWebContainer && !isTerminal
+                  !loadingWebContainer /*&& !isTerminal*/
                     ? "bg-white text-black rounded-md m-3 flex-1"
                     : "hidden"
                 }
               >
-                <iframe ref={previewRef} className="h-full w-full"></iframe>
+                <iframe
+                  ref={previewRef}
+                  onError={handleError}
+                  className="h-full w-full"
+                ></iframe>
               </div>
-              <div
+              {/* <div
                 className={
                   isTerminal
                     ? "bg-black flex-1 text-white p-4"
                     : "bg-black flex-1 hidden"
                 }
                 ref={terminalRef}
-              ></div>
+              ></div> */}
             </div>
           </div>
         </section>
