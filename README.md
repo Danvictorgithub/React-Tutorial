@@ -1,2 +1,4 @@
 # React-Tutorial
-Interactive React Tutorial with Web Containers
+Interactive React Tutorial with Web Containers Prototype
+
+FULL Tutorial Soon
